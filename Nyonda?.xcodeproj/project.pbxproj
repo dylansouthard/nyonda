@@ -29,9 +29,50 @@
 		FC7FF1E73026F87100C6F687 /* Nyonda?UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nyonda?UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FC3B91F53029F081007AB72C /* Exceptions for "Nyonda?" folder in "Nyonda?Tests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"fonts/ZenMaruGothic-Black.ttf",
+				"fonts/ZenMaruGothic-Bold.ttf",
+				"fonts/ZenMaruGothic-Light.ttf",
+				"fonts/ZenMaruGothic-Medium.ttf",
+				"fonts/ZenMaruGothic-Regular.ttf",
+				"sounds/nyonda-alarm.caf",
+				sounds/omikuji_shake.caf,
+				sounds/omikuji_stick.caf,
+				sounds/paper.caf,
+				sounds/success_OLD.caf,
+				sounds/success.caf,
+			);
+			target = FC7FF1DC3026F87100C6F687 /* Nyonda?Tests */;
+		};
+		FC3B91F63029F081007AB72C /* Exceptions for "Nyonda?" folder in "Nyonda?UITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"fonts/ZenMaruGothic-Black.ttf",
+				"fonts/ZenMaruGothic-Bold.ttf",
+				"fonts/ZenMaruGothic-Light.ttf",
+				"fonts/ZenMaruGothic-Medium.ttf",
+				"fonts/ZenMaruGothic-Regular.ttf",
+				"sounds/nyonda-alarm.caf",
+				sounds/omikuji_shake.caf,
+				sounds/omikuji_stick.caf,
+				sounds/paper.caf,
+				sounds/success_OLD.caf,
+				sounds/success.caf,
+			);
+			target = FC7FF1E63026F87100C6F687 /* Nyonda?UITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FC7FF1D03026F87000C6F687 /* Nyonda? */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FC3B91F53029F081007AB72C /* Exceptions for "Nyonda?" folder in "Nyonda?Tests" target */,
+				FC3B91F63029F081007AB72C /* Exceptions for "Nyonda?" folder in "Nyonda?UITests" target */,
+			);
 			path = "Nyonda?";
 			sourceTree = "<group>";
 		};
@@ -395,13 +436,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UQ3BB547F3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Nyonda--Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -426,13 +468,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UQ3BB547F3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Nyonda--Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

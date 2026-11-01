@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>This app schedules a daily alarm.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>ZenMaruGothic-Regular.ttf</string>
+		<string>ZenMaruGothic-Medium.ttf</string>
+		<string>ZenMaruGothic-Bold.ttf</string>
+		<string>ZenMaruGothic-Light.ttf</string>
+		<string>ZenMaruGothic-Black.ttf</string>
+	</array>
+</dict>
+</plist>
