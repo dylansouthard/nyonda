@@ -68,9 +68,15 @@ final class AlarmService: ReminderDeliveryService {
         cancelScheduledAlarm()
     }
     
-    func updateTime(to time: DailyReminderTime) async -> Bool {
-        guard await ensureAuthorization() else {return false}
-        guard let nextFireDate = reminderSchedule.nextFireDate(for: time) else {
+    func updateTime(
+        to time: DailyReminderTime,
+        after startDate: Date
+    ) async -> Bool {
+        guard await ensureAuthorization() else { return false }
+        guard let nextFireDate = reminderSchedule.nextFireDate(
+            for: time,
+            after: startDate
+        ) else {
             alarmError = "Could not calculate the updated reminder time."
             return false
         }

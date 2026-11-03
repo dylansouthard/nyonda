@@ -43,6 +43,21 @@ enum AppDay {
         )
     }
 
+    static func nextRollover(
+        after date: Date = .now,
+        calendar: Calendar = .autoupdatingCurrent
+    ) -> Date? {
+        calendar.nextDate(
+            after: date,
+            matching: DateComponents(
+                hour: rolloverHour,
+                minute: 0,
+                second: 0
+            ),
+            matchingPolicy: .nextTime
+        )
+    }
+
     private static func shifted(
         _ date: Date,
         calendar: Calendar

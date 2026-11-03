@@ -13,9 +13,14 @@ struct ReminderSettingsView: View {
     private var dismiss
     @State private var presentedErrorMessage: String?
     @State private var draftTime: Date
+    let medicineTakenToday: Bool
     
-    init (reminderController: ReminderController) {
+    init(
+        reminderController: ReminderController,
+        medicineTakenToday: Bool
+    ) {
         self.reminderController = reminderController
+        self.medicineTakenToday = medicineTakenToday
         _draftTime = State(initialValue: reminderController.selectedTime)
     }
     
@@ -92,7 +97,8 @@ struct ReminderSettingsView: View {
 
                     Task {
                         let succeeded = await reminderController.updateReminderTime(
-                            to: proposedTime
+                            to: proposedTime,
+                            medicineTakenToday: medicineTakenToday
                         )
 
                         if !succeeded {
@@ -177,5 +183,8 @@ struct ReminderSettingsView: View {
 }
 
 #Preview {
-    ReminderSettingsView(reminderController: ReminderController())
+    ReminderSettingsView(
+        reminderController: ReminderController(),
+        medicineTakenToday: false
+    )
 }

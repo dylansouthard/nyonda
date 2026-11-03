@@ -155,7 +155,21 @@ extension NotificationService: ReminderDeliveryService {
     }
     
     func enable(at time: DailyReminderTime) async -> Bool {
-        guard await ensureAuthorization() else {return false}
+        guard await ensureAuthorization() else { return false }
+
+        let existingRequests = await pendingReminderRequests()
+        let existingDates = existingRequests
+            .compactMap { fireDate(for: $0) }
+            .sorted()
+
+        if let firstDate = existingDates.first,
+           firstDate > .now,
+           DailyReminderTime(from: firstDate) == time {
+            scheduledDates = existingDates
+            notificationError = nil
+            return true
+        }
+
         let fireDates = futureFireDates(for: time, after: .now)
         guard !fireDates.isEmpty else {
             notificationError = "Could not calculate upcoming notification dates."
@@ -176,10 +190,16 @@ extension NotificationService: ReminderDeliveryService {
         return true
     }
     
-    func updateTime(to time: DailyReminderTime) async -> Bool {
-        guard await ensureAuthorization() else {return false}
+    func updateTime(
+        to time: DailyReminderTime,
+        after startDate: Date
+    ) async -> Bool {
+        guard await ensureAuthorization() else { return false }
         
-        let replacementDates = futureFireDates(for: time, after: .now)
+        let replacementDates = futureFireDates(
+            for: time,
+            after: startDate
+        )
         
         guard !replacementDates.isEmpty else {
             notificationError = "Could not calculate the updated notification dates."

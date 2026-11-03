@@ -19,7 +19,10 @@ protocol ReminderDeliveryService: AnyObject {
     func disable() async -> Bool
     
     @discardableResult
-    func updateTime(to time: DailyReminderTime) async -> Bool
+    func updateTime(
+        to time: DailyReminderTime,
+        after startDate: Date
+    ) async -> Bool
     
     @discardableResult
     func skipToday(at time: DailyReminderTime) async -> Bool
@@ -27,6 +30,11 @@ protocol ReminderDeliveryService: AnyObject {
 }
 
 extension ReminderDeliveryService {
+    @discardableResult
+    func updateTime(to time: DailyReminderTime) async -> Bool {
+        await updateTime(to: time, after: .now)
+    }
+
     func monitorUpdates() async {
         await reconcile()
     }

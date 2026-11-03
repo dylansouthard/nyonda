@@ -126,14 +126,28 @@ final class ReminderController {
     }
     
     @discardableResult
-    func updateReminderTime(to newTime: Date) async -> Bool {
+    func updateReminderTime(
+        to newTime: Date,
+        medicineTakenToday: Bool
+    ) async -> Bool {
         await withReminderOperation {
             modeChangeError = nil
             guard isEnabled else { return false }
             guard needsReminderTimeUpdate(for: newTime) else { return true }
 
             let newReminderTime = DailyReminderTime(from: newTime)
-            let succeeded = await activeService.updateTime(to: newReminderTime)
+            let scheduleStartDate: Date
+
+            if medicineTakenToday {
+                scheduleStartDate = AppDay.nextRollover() ?? .now
+            } else {
+                scheduleStartDate = .now
+            }
+
+            let succeeded = await activeService.updateTime(
+                to: newReminderTime,
+                after: scheduleStartDate
+            )
             guard succeeded else { return false }
 
             selectedTime = newTime

@@ -161,7 +161,8 @@ struct ContentView: View {
             .allowsHitTesting(!isFortuneOverlayVisible)
             .sheet(isPresented: $isShowingAlarmSettings) {
                 ReminderSettingsView(
-                    reminderController: reminderController
+                    reminderController: reminderController,
+                    medicineTakenToday: appState.hasTakenMedicineToday
                 )
                 .presentationDetents([
                     .medium,
