@@ -20,7 +20,6 @@ final class ReminderStore {
         static let selectedTime = "selectedTime"
         static let isEnabled = "isEnabled"
         static let reminderMode = "reminderMode"
-        static let lastTakeDate = "lastTakenDate"
     }
     
     var selectedTime: Date? {
@@ -34,10 +33,6 @@ final class ReminderStore {
     var reminderMode:ReminderMode {
         guard let rawValue = defaults.string(forKey: Key.reminderMode), let mode = ReminderMode(rawValue: rawValue) else {return .alarm}
         return mode
-    }
-    
-    var lastTakenDate: Date? {
-        defaults.object(forKey: Key.lastTakeDate) as? Date
     }
     
     init(defaults: UserDefaults = .standard) {
@@ -62,10 +57,5 @@ final class ReminderStore {
     func saveReminderMode(_ reminderMode: ReminderMode) {
         defaults.set(reminderMode.rawValue, forKey: Key.reminderMode)
     }
-    
-    func saveLastTakenDate(_ date: Date) {
-        defaults.set(date, forKey: Key.lastTakeDate)
-    }
-    
     
 }

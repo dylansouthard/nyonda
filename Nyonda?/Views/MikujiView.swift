@@ -104,23 +104,6 @@ struct MikujiView: View {
             .resizable()
             .scaledToFit()
     }
-        
-//    private func registerShake() {
-//        guard phase != .revealed else {
-//            return
-//        }
-//        shakeTrigger += 1
-//        shakeCount += 1
-//        
-//        print("Shake \(shakeCount)/\(requiredShakeCount)")
-//        
-//        if shakeCount >= requiredShakeCount {
-//            phase = .waitingForFlip
-//            print("waiting for flip")
-//        }
-//    }
-//
-    
     private func revealStick() {
         guard phase == .waitingForFlip,
               !isRevealingStick else {
@@ -195,22 +178,6 @@ struct MikujiView: View {
         isShaking = false
         feedbackPlayer.stop(.omikujiShake)
     }
-//    private func playShakeFeedback() {
-//        guard phase != .revealed else {
-//            feedbackPlayer.stop(.omikujiShake)
-//            return
-//        }
-//        
-//        feedbackPlayer.startLooping(.omikujiShake)
-//        feedbackPlayer.impact(style: .light, intensity:0.8)
-//        
-//        stopShakeSoundTask?.cancel()
-//        stopShakeSoundTask = Task {@MainActor in
-//            try? await Task.sleep(for: .milliseconds(400))
-//            feedbackPlayer.stop(.omikujiShake)
-//            
-//        }
-//    }
     
 }
 

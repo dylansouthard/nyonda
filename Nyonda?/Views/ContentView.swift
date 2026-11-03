@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 private extension AnyTransition {
     static var centerWipe: AnyTransition {
@@ -107,9 +106,6 @@ struct ContentView: View {
                             }
                         }
                     )
-//                    Button("clear fortune") {
-//                        fortuneController.store.clear()
-//                    }
                     Picker("Cat theme", selection: $currentTheme) {
                         ForEach(CatTheme.allCases, id: \.self) { theme in
                             Image(theme.iconName)
@@ -162,7 +158,11 @@ struct ContentView: View {
             .sheet(isPresented: $isShowingAlarmSettings) {
                 ReminderSettingsView(
                     reminderController: reminderController,
-                    medicineTakenToday: appState.hasTakenMedicineToday
+                    medicineTakenToday: appState.hasTakenMedicineToday,
+                    onDismissCommitFailure: { message in
+                        reminderErrorMessage = message
+                        isShowingReminderError = true
+                    }
                 )
                 .presentationDetents([
                     .medium,
@@ -252,6 +252,4 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
-

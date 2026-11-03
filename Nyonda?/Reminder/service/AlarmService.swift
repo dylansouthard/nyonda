@@ -31,10 +31,6 @@ final class AlarmService: ReminderDeliveryService {
     var errorMessage: String? {
         alarmError ?? authorizationError
     }
-    var hasScheduledAlarm: Bool {
-        scheduledAlarmID != nil
-    }
-    
     init() {
         let store = AlarmStore()
         self.reminderSchedule = DailyReminderSchedule()
@@ -192,19 +188,6 @@ final class AlarmService: ReminderDeliveryService {
         } catch {
             alarmError = error.localizedDescription
             return false
-        }
-    }
-    
-    private func observeAlarmUpdates() async {
-        do {
-            let currentAlarms = try manager.alarms
-            reconcileAlarmState(with: currentAlarms)
-        } catch {
-            alarmError = error.localizedDescription
-        }
-        
-        for await alarms in manager.alarmUpdates {
-            reconcileAlarmState(with: alarms)
         }
     }
     

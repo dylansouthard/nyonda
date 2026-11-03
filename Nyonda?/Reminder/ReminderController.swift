@@ -13,10 +13,11 @@ import Observation
 final class ReminderController {
     
     private let reminderStore: ReminderStore
-    private let alarmService: AlarmService
-    private let notificationService:NotificationService
+    private let alarmService: any ReminderDeliveryService
+    private let notificationService: any ReminderDeliveryService
+    private let calendar: Calendar
+    private let now: () -> Date
     private(set) var reminderMode: ReminderMode
-    private(set) var lastTakenDate: Date?
     private var activeService: any ReminderDeliveryService {
         service(for: reminderMode)
     }
@@ -41,15 +42,33 @@ final class ReminderController {
     private(set) var modeChangeError: String?
     var errorMessage: String? {modeChangeError ?? activeService.errorMessage}
     
-    init() {
+    convenience init() {
         let reminderStore = ReminderStore()
+        self.init(
+            reminderStore: reminderStore,
+            alarmService: AlarmService(),
+            notificationService: NotificationService()
+        )
+    }
+
+    init(
+        reminderStore: ReminderStore,
+        alarmService: any ReminderDeliveryService,
+        notificationService: any ReminderDeliveryService,
+        calendar: Calendar = .autoupdatingCurrent,
+        now: @escaping () -> Date = { .now }
+    ) {
         self.reminderStore = reminderStore
-        self.alarmService = AlarmService()
-        self.notificationService = NotificationService()
+        self.alarmService = alarmService
+        self.notificationService = notificationService
+        self.calendar = calendar
+        self.now = now
         self.reminderMode = reminderStore.reminderMode
-        self.selectedTime = reminderStore.selectedTime ?? Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: .now) ?? .now
+        let currentDate = now()
+        self.selectedTime = reminderStore.selectedTime
+            ?? calendar.date(bySettingHour: 23, minute: 0, second: 0, of: currentDate)
+            ?? currentDate
         self.isEnabled = reminderStore.isEnabled
-        self.lastTakenDate = reminderStore.lastTakenDate
     }
     
     private func service(for mode: ReminderMode) -> any ReminderDeliveryService {
@@ -62,13 +81,7 @@ final class ReminderController {
     }
     
     func needsReminderTimeUpdate(for date: Date) -> Bool {
-        guard isEnabled, let nextScheduledDate else {
-            return false
-        }
-        let selectedTime = DailyReminderTime(from: date)
-        let scheduledTime = DailyReminderTime(from: nextScheduledDate)
-        
-        return selectedTime != scheduledTime
+        DailyReminderTime(from: date) != selectedReminderTime
     }
     
     @discardableResult
@@ -105,10 +118,28 @@ final class ReminderController {
         } ?? false
     }
     
-    func enableDailyReminder() async {
+    func enableDailyReminder(medicineTakenToday: Bool) async {
         await withReminderOperation {
             modeChangeError = nil
-            let succeeded = await activeService.enable(at:selectedReminderTime)
+            let succeeded: Bool
+
+            if medicineTakenToday {
+                let currentDate = now()
+                let scheduleStartDate = AppDay.nextRollover(
+                    after: currentDate,
+                    calendar: calendar
+                ) ?? currentDate
+
+                succeeded = await activeService.updateTime(
+                    to: selectedReminderTime,
+                    after: scheduleStartDate
+                )
+            } else {
+                succeeded = await activeService.enable(
+                    at: selectedReminderTime
+                )
+            }
+
             guard succeeded else {return}
             setEnabled(true)
         }
@@ -138,10 +169,14 @@ final class ReminderController {
             let newReminderTime = DailyReminderTime(from: newTime)
             let scheduleStartDate: Date
 
+            let currentDate = now()
             if medicineTakenToday {
-                scheduleStartDate = AppDay.nextRollover() ?? .now
+                scheduleStartDate = AppDay.nextRollover(
+                    after: currentDate,
+                    calendar: calendar
+                ) ?? currentDate
             } else {
-                scheduleStartDate = .now
+                scheduleStartDate = currentDate
             }
 
             let succeeded = await activeService.updateTime(
@@ -200,7 +235,10 @@ final class ReminderController {
         await withReminderOperation {
             guard isEnabled else {return}
             modeChangeError = nil
-            await activeService.updateTime(to: selectedReminderTime)
+            await activeService.updateTime(
+                to: selectedReminderTime,
+                after: now()
+            )
         }
     }
     

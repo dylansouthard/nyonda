@@ -14,18 +14,22 @@ struct ReminderSettingsView: View {
     @State private var presentedErrorMessage: String?
     @State private var draftTime: Date
     let medicineTakenToday: Bool
+    let onDismissCommitFailure: (String) -> Void
     
     init(
         reminderController: ReminderController,
-        medicineTakenToday: Bool
+        medicineTakenToday: Bool,
+        onDismissCommitFailure: @escaping (String) -> Void = { _ in }
     ) {
         self.reminderController = reminderController
         self.medicineTakenToday = medicineTakenToday
+        self.onDismissCommitFailure = onDismissCommitFailure
         _draftTime = State(initialValue: reminderController.selectedTime)
     }
     
-    private var draftTimeMatchesScheduledTime: Bool {
-        !reminderController.needsReminderTimeUpdate(for: draftTime)
+    private var draftTimeMatchesCommittedTime: Bool {
+        DailyReminderTime(from: draftTime)
+            == DailyReminderTime(from: reminderController.selectedTime)
     }
     
     private var isPresentingError: Binding<Bool> {
@@ -55,8 +59,17 @@ struct ReminderSettingsView: View {
                 ToolbarItem(
                     placement: .confirmationAction) {
                         Button("Done") {
-                            dismiss()
+                            Task {
+                                guard await commitDraftTime(
+                                    reportFailureAfterDismissal: false
+                                ) else {
+                                    return
+                                }
+
+                                dismiss()
+                            }
                         }
+                        .disabled(reminderController.isPerformingOperation)
                     }
             }
             .onAppear {
@@ -72,6 +85,18 @@ struct ReminderSettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(presentedErrorMessage ?? "リマインダーを設定できませんでした。")
+            }
+            .interactiveDismissDisabled(reminderController.isPerformingOperation)
+            .onDisappear {
+                guard !draftTimeMatchesCommittedTime else {
+                    return
+                }
+
+                Task {
+                    await commitDraftTime(
+                        reportFailureAfterDismissal: true
+                    )
+                }
             }
             
         }
@@ -93,21 +118,14 @@ struct ReminderSettingsView: View {
                 .disabled(reminderController.isPerformingOperation || !reminderController.isEnabled)
                 Divider()
                 Button {
-                    let proposedTime = draftTime
-
                     Task {
-                        let succeeded = await reminderController.updateReminderTime(
-                            to: proposedTime,
-                            medicineTakenToday: medicineTakenToday
+                        await commitDraftTime(
+                            reportFailureAfterDismissal: false
                         )
-
-                        if !succeeded {
-                            draftTime = reminderController.selectedTime
-                        }
                     }
                 } label: { Text("OK").foregroundColor(.btnTxt) }
                     .disabled(
-                        draftTimeMatchesScheduledTime
+                        draftTimeMatchesCommittedTime
                         || reminderController.isPerformingOperation
                         || !reminderController.isEnabled
                     )
@@ -134,7 +152,9 @@ struct ReminderSettingsView: View {
                     
                 } else {
                     Task {
-                        await reminderController.enableDailyReminder()
+                        await reminderController.enableDailyReminder(
+                            medicineTakenToday: medicineTakenToday
+                        )
                     }
                 }
             } label: {
@@ -179,6 +199,37 @@ struct ReminderSettingsView: View {
                 }
             }
         )
+    }
+
+    @discardableResult
+    private func commitDraftTime(
+        reportFailureAfterDismissal: Bool
+    ) async -> Bool {
+        guard !draftTimeMatchesCommittedTime else {
+            return true
+        }
+
+        let proposedTime = draftTime
+        let succeeded = await reminderController.updateReminderTime(
+            to: proposedTime,
+            medicineTakenToday: medicineTakenToday
+        )
+
+        guard succeeded else {
+            draftTime = reminderController.selectedTime
+            let message = reminderController.errorMessage
+                ?? "リマインダーを設定できませんでした。"
+
+            if reportFailureAfterDismissal {
+                onDismissCommitFailure(message)
+            } else {
+                presentedErrorMessage = message
+            }
+
+            return false
+        }
+
+        return true
     }
 }
 

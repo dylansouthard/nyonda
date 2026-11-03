@@ -8,10 +8,6 @@
 import SwiftUI
 
 extension Font {
-    static func zenMaruLight(_ size: CGFloat) -> Font {
-        .custom("ZenMaruGothic-Light", fixedSize: size)
-    }
-
     static func zenMaruRegular(_ size: CGFloat) -> Font {
         .custom("ZenMaruGothic-Regular", fixedSize: size)
     }

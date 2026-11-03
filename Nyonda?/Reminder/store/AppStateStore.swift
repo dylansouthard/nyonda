@@ -12,21 +12,39 @@ import Observation
 @Observable
 final class AppStateStore {
     private let defaults:UserDefaults
+    private let calendar: Calendar
+    private let now: () -> Date
     
     private enum Key {
         static let lastTakenDate = "appstate.lastTakenDate"
+        static let legacyLastTakenDate = "lastTakenDate"
     }
     
     private(set) var lastTakenDate: Date?
     
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        calendar: Calendar = .autoupdatingCurrent,
+        now: @escaping () -> Date = { .now }
+    ) {
         self.defaults = defaults
-        self.lastTakenDate = defaults.object(forKey: Key.lastTakenDate) as? Date
+        self.calendar = calendar
+        self.now = now
+
+        if let currentDate = defaults.object(forKey: Key.lastTakenDate) as? Date {
+            self.lastTakenDate = currentDate
+        } else if let legacyDate = defaults.object(forKey: Key.legacyLastTakenDate) as? Date {
+            defaults.set(legacyDate, forKey: Key.lastTakenDate)
+            defaults.removeObject(forKey: Key.legacyLastTakenDate)
+            self.lastTakenDate = legacyDate
+        } else {
+            self.lastTakenDate = nil
+        }
     }
     
     var hasTakenMedicineToday: Bool {
         guard let lastTakenDate else {return false}
-        return AppDay.isToday(lastTakenDate, calendar: .autoupdatingCurrent)
+        return AppDay.isToday(lastTakenDate, relativeTo: now(), calendar: calendar)
     }
     
     var canMarkMedicineTaken: Bool {
@@ -35,7 +53,7 @@ final class AppStateStore {
     
     @discardableResult
     func markMedicineTaken(at date: Date = .now) -> Bool {
-        if let lastTakenDate, AppDay.isSameDay(lastTakenDate, date, calendar: .autoupdatingCurrent) {
+        if let lastTakenDate, AppDay.isSameDay(lastTakenDate, date, calendar: calendar) {
             return false
         }
         lastTakenDate = date
