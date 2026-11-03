@@ -15,11 +15,13 @@ struct CatView: View {
     private var isPillOverMouth = false
     @State
     private var mouthFrame: CGRect = .zero
+    @State private var isPillSwallowed = false
     @State private var feedbackPlayer = AppFeedbackPlayer()
 
-    let canSkipToday: Bool
+    let canMarkMedicineTaken: Bool
     let isBusy: Bool
     let onSkipToday: () -> Void
+    let onUndoSkip: () -> Void
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
@@ -39,14 +41,17 @@ struct CatView: View {
 
     private var catPlaceholder: some View {
         ZStack {
-            Image(canSkipToday ? theme.openImageName : theme.closedImageName)
+            Image(canMarkMedicineTaken ? theme.openImageName : theme.closedImageName)
                 .resizable()
                 .scaledToFit()
                 .frame(
                     maxWidth: 350,
                     maxHeight: 350
                 )
-            if canSkipToday {
+                .transaction(value: canMarkMedicineTaken) { transaction in
+                    transaction.disablesAnimations = true
+                }
+            if canMarkMedicineTaken {
                 mouthTarget
                     .offset(y: 80)
             }
@@ -80,15 +85,22 @@ struct CatView: View {
                 value: pillDragOffset
             )
             .gesture(pillDragGesture)
-            .opacity(canSkipToday ? isPillOverMouth ? 0.8 : 1 : 0)
-            .allowsHitTesting(canSkipToday && !isBusy)
+            .opacity(isPillSwallowed ? 0 : isPillOverMouth ? 0.8 : 1)
+            .allowsHitTesting(canMarkMedicineTaken && !isBusy)
     }
     private var pillSlot: some View {
         ZStack {
-            if canSkipToday {
+            if canMarkMedicineTaken {
                 draggablePill
             } else {
-                PopInTxt("もうにょんだ！")
+                VStack {
+                    PopInTxt("もうにょんだ！")
+                    FadeInButton(label: "取り消す", disabled: isBusy) {
+                        isPillSwallowed = false
+                        onUndoSkip()
+                    }
+                    
+                }
             }
             
         }
@@ -140,6 +152,12 @@ struct CatView: View {
                 return
             }
 
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isPillSwallowed = true
+            }
+
             feedbackPlayer.play(.medicineTaken)
             feedbackPlayer.doubleImpact()
             print("Pill entered the mouth.")
@@ -150,23 +168,25 @@ struct CatView: View {
 }
 
 #Preview {
-    CatView(theme: .sabi, canSkipToday: true, isBusy: false, onSkipToday: {})
+    CatView(theme: .sabi, canMarkMedicineTaken: true, isBusy: false, onSkipToday: {}, onUndoSkip: {})
 }
 
 #Preview("Active Today") {
     CatView(
         theme: .ame,
-        canSkipToday: false,
+        canMarkMedicineTaken: false,
         isBusy: false,
-        onSkipToday: {}
+        onSkipToday: {},
+        onUndoSkip: {}
     )
 }
 
 #Preview("Finished Today") {
     CatView(
         theme: .ame,
-        canSkipToday: false,
+        canMarkMedicineTaken: false,
         isBusy: false,
-        onSkipToday: {}
+        onSkipToday: {},
+        onUndoSkip: {}
     )
 }

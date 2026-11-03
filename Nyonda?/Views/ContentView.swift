@@ -47,6 +47,9 @@ struct ContentView: View {
     @State private var reminderController = ReminderController()
     @State private var fortuneController = FortuneController()
     @State private var isShowingAlarmSettings = false
+    @State private var isShowingReminderError = false
+    @State private var reminderErrorMessage = ""
+    @State private var appState = AppStateStore()
     private var isFortuneOverlayVisible: Bool {
         fortuneOverlayStage != .hidden
     }
@@ -67,12 +70,23 @@ struct ContentView: View {
                 VStack(spacing:32) {
                     CatView(
                         theme:currentTheme,
-                        canSkipToday: reminderController.canSkipToday,
-                        isBusy: reminderController.isPerformingOperation
-                    ) {
-                        fortuneController.loadOrGenerateToday(for: currentTheme)
+                        canMarkMedicineTaken: appState.canMarkMedicineTaken,
+                        isBusy: reminderController.isPerformingOperation,
+                        onSkipToday: {
                         Task {@MainActor in
-                            await reminderController.skipToday()
+                            let didMarkTaken = withAnimation{
+                                appState.markMedicineTaken()
+                            }
+                            guard didMarkTaken else {return}
+                            fortuneController.loadOrGenerateToday(for: currentTheme)
+
+                            let didSkipReminder = await reminderController.skipToday()
+                            if !didSkipReminder {
+                                reminderErrorMessage = reminderController.errorMessage
+                                    ?? "今日のリマインダーをスキップできませんでした。"
+                                isShowingReminderError = true
+                            }
+
                             do {
                                 try await Task.sleep(for: .seconds(1))
                             } catch {
@@ -82,7 +96,17 @@ struct ContentView: View {
                             }
                             self.fortuneOverlayStage = .mikuji
                         }
-                    }
+                    },
+                        onUndoSkip: {
+                            let didUndo = withAnimation {
+                                appState.undoMedicineTakenToday()
+                            }
+                            guard didUndo else {return}
+                            Task {
+                                await reminderController.restoreTodayReminderIfPossible()
+                            }
+                        }
+                    )
 //                    Button("clear fortune") {
 //                        fortuneController.store.clear()
 //                    }
@@ -210,6 +234,14 @@ struct ContentView: View {
                 )
                 .zIndex(3)
             }
+        }
+        .alert(
+            "リマインダーを更新できませんでした",
+            isPresented: $isShowingReminderError
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(reminderErrorMessage)
         }
         
     }

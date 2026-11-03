@@ -16,6 +16,7 @@ final class ReminderController {
     private let alarmService: AlarmService
     private let notificationService:NotificationService
     private(set) var reminderMode: ReminderMode
+    private(set) var lastTakenDate: Date?
     private var activeService: any ReminderDeliveryService {
         service(for: reminderMode)
     }
@@ -40,22 +41,6 @@ final class ReminderController {
     private(set) var modeChangeError: String?
     var errorMessage: String? {modeChangeError ?? activeService.errorMessage}
     
-    var canSkipToday: Bool {
-        guard isEnabled, let nextScheduledDate else {return false}
-        return AppDay.isToday(
-                nextScheduledDate,
-                calendar: .autoupdatingCurrent
-            )
-    }
-    
-    var needsReminderTimeUpdate: Bool {
-        guard isEnabled, let nextScheduledDate else {return false}
-        
-        let scheduledTime = DailyReminderTime(from:nextScheduledDate)
-        
-        return selectedReminderTime != scheduledTime
-    }
-    
     init() {
         let reminderStore = ReminderStore()
         self.reminderStore = reminderStore
@@ -64,6 +49,7 @@ final class ReminderController {
         self.reminderMode = reminderStore.reminderMode
         self.selectedTime = reminderStore.selectedTime ?? Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: .now) ?? .now
         self.isEnabled = reminderStore.isEnabled
+        self.lastTakenDate = reminderStore.lastTakenDate
     }
     
     private func service(for mode: ReminderMode) -> any ReminderDeliveryService {
@@ -73,6 +59,16 @@ final class ReminderController {
         case .notification:
             notificationService
         }
+    }
+    
+    func needsReminderTimeUpdate(for date: Date) -> Bool {
+        guard isEnabled, let nextScheduledDate else {
+            return false
+        }
+        let selectedTime = DailyReminderTime(from: date)
+        let scheduledTime = DailyReminderTime(from: nextScheduledDate)
+        
+        return selectedTime != scheduledTime
     }
     
     @discardableResult
@@ -129,19 +125,68 @@ final class ReminderController {
         }
     }
     
-    func updateReminderTime() async {
+    @discardableResult
+    func updateReminderTime(to newTime: Date) async -> Bool {
         await withReminderOperation {
             modeChangeError = nil
-            guard isEnabled, needsReminderTimeUpdate else {return}
-            await activeService.updateTime(to: selectedReminderTime)
-        }
+            guard isEnabled else { return false }
+            guard needsReminderTimeUpdate(for: newTime) else { return true }
+
+            let newReminderTime = DailyReminderTime(from: newTime)
+            let succeeded = await activeService.updateTime(to: newReminderTime)
+            guard succeeded else { return false }
+
+            selectedTime = newTime
+            return true
+        } ?? false
     }
     
-    func skipToday() async {
-        await withReminderOperation {
+    @discardableResult
+    func skipToday() async -> Bool {
+        let result = await withReminderOperation {
             modeChangeError = nil
-            guard canSkipToday else {return}
-            await activeService.skipToday(at: selectedReminderTime)
+
+            guard isEnabled else {
+                return true
+            }
+
+            guard let nextScheduledDate else {
+                modeChangeError = "次のリマインダーが見つかりませんでした。"
+                return false
+            }
+
+            guard AppDay.isToday(
+                nextScheduledDate,
+                calendar: .autoupdatingCurrent
+            ) else {
+                return true
+            }
+
+            let succeeded = await activeService.skipToday(
+                at: selectedReminderTime
+            )
+
+            if !succeeded {
+                modeChangeError = activeService.errorMessage
+                    ?? "今日のリマインダーをスキップできませんでした。"
+            }
+
+            return succeeded
+        }
+
+        guard let result else {
+            modeChangeError = "別のリマインダー操作が進行中です。もう一度お試しください。"
+            return false
+        }
+
+        return result
+    }
+    
+    func restoreTodayReminderIfPossible() async {
+        await withReminderOperation {
+            guard isEnabled else {return}
+            modeChangeError = nil
+            await activeService.updateTime(to: selectedReminderTime)
         }
     }
     

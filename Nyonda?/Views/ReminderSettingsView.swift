@@ -11,6 +11,29 @@ struct ReminderSettingsView: View {
     @Bindable var reminderController: ReminderController
     @Environment(\.dismiss)
     private var dismiss
+    @State private var presentedErrorMessage: String?
+    @State private var draftTime: Date
+    
+    init (reminderController: ReminderController) {
+        self.reminderController = reminderController
+        _draftTime = State(initialValue: reminderController.selectedTime)
+    }
+    
+    private var draftTimeMatchesScheduledTime: Bool {
+        !reminderController.needsReminderTimeUpdate(for: draftTime)
+    }
+    
+    private var isPresentingError: Binding<Bool> {
+        Binding(
+            get: {
+                presentedErrorMessage != nil
+            },
+            set: {isPresented in
+                if !isPresented {
+                    presentedErrorMessage = nil
+                }
+            })
+    }
     
     
     var body: some View {
@@ -31,6 +54,20 @@ struct ReminderSettingsView: View {
                         }
                     }
             }
+            .onAppear {
+                if let existingError = reminderController.errorMessage {
+                    presentedErrorMessage = existingError
+                }
+            }
+            .onChange(of: reminderController.errorMessage) {_, newError in
+                guard let newError else {return}
+                presentedErrorMessage = newError
+            }
+            .alert("エラー", isPresented: isPresentingError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(presentedErrorMessage ?? "リマインダーを設定できませんでした。")
+            }
             
         }
         
@@ -42,19 +79,32 @@ struct ReminderSettingsView: View {
             
             HStack {
                 DatePicker(
-                    selection:$reminderController.selectedTime,
+                    selection:$draftTime,
                     displayedComponents: .hourAndMinute
                 ) {
                     Label("時間", systemImage: "clock")
+                        .foregroundStyle(.primary)
                 }
                 .disabled(reminderController.isPerformingOperation || !reminderController.isEnabled)
                 Divider()
                 Button {
+                    let proposedTime = draftTime
+
                     Task {
-                        await reminderController.updateReminderTime()
+                        let succeeded = await reminderController.updateReminderTime(
+                            to: proposedTime
+                        )
+
+                        if !succeeded {
+                            draftTime = reminderController.selectedTime
+                        }
                     }
-                } label: { Text("OK") }
-                    .disabled(!reminderController.needsReminderTimeUpdate || reminderController.isPerformingOperation || !reminderController.isEnabled)
+                } label: { Text("OK").foregroundColor(.btnTxt) }
+                    .disabled(
+                        draftTimeMatchesScheduledTime
+                        || reminderController.isPerformingOperation
+                        || !reminderController.isEnabled
+                    )
             }
             Picker("リマインダー方法", selection: reminderModeBinding) {
                 ForEach(ReminderMode.allCases) {mode in
@@ -90,6 +140,7 @@ struct ReminderSettingsView: View {
                         ? "bell.slash"
                         : "alarm"
                 )
+                .foregroundColor(.btnTxt)
             }
             .disabled(
                 reminderController.isPerformingOperation

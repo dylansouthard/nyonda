@@ -28,8 +28,18 @@ enum SoundEffect: String, CaseIterable, Hashable {
 @MainActor
 final class AppFeedbackPlayer {
     private var audioPlayers: [SoundEffect: AVAudioPlayer] = [:]
+    
     init() {
+        configureAudioSession()
         prepareSounds()
+    }
+    
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        } catch {
+            print("Could not configure audio session: \(error)")
+        }
     }
     
     private func prepareSounds() {
@@ -103,6 +113,12 @@ final class AppFeedbackPlayer {
         let generator = UIImpactFeedbackGenerator(style:style)
         generator.prepare()
         generator.impactOccurred( intensity:intensity)
+        
+        Task {@MainActor in
+            try? await Task.sleep(for: spacing)
+            generator.prepare()
+            generator.impactOccurred(intensity: intensity)
+        }
         
     }
 }

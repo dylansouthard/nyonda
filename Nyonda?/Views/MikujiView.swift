@@ -30,6 +30,7 @@ struct MikujiView: View {
     @State private var shakeStartedAt: Date?
     @State private var accumulatedShakeTime:TimeInterval = 0
     @State private var shakeIdletask: Task<Void, Never>?
+    @State private var revealTask: Task<Void, Never>?
     
     private let requiredShakeTime: TimeInterval = 1.5
     private let shakeIdleTime:Duration = .milliseconds(500)
@@ -37,10 +38,18 @@ struct MikujiView: View {
     var body: some View {
         VStack {
         if phase == .waitingForShake {
-            PopInTxt("ふりふりしてにゃ!", size:40)
+            if motionReader.isAvailable {
+                PopInTxt("ふりふりしてにゃ!", size:40)
+            } else {
+                Button("タップしておみくじを引く") {
+                    phase = .waitingForFlip
+                    revealStick()
+                }
+            }
         } else if phase == .waitingForFlip {
             PopInTxt("さかさまにしてにゃ!", size:35)
         }
+            
             Spacer()
                 .frame(height:200)
             
@@ -60,27 +69,8 @@ struct MikujiView: View {
                 registerShakeActivity()
             }
             .onChange(of: motionReader.upsideDownEventID) { oldValue, newValue in
-                guard newValue > oldValue,
-                      phase == .waitingForFlip,
-                      !isRevealingStick else {
-                    return
-                }
-
-                isRevealingStick = true
-
-                Task { @MainActor in
-                    revealStick()
-
-                    do {
-                        try await Task.sleep(for: .milliseconds(800))
-                    } catch {
-                        isRevealingStick = false
-                        return
-                    }
-
-                    isRevealingStick = false
-                    onPullMikuji()
-                }
+                guard newValue > oldValue else {return}
+                revealStick()
             }
             .phaseAnimator([-1.0, 0.8, -0.7, 1.0]) { content, phaseValue in
                 let movement = isShaking ? phaseValue : 0
@@ -102,12 +92,13 @@ struct MikujiView: View {
             motionReader.start()
         }
         .onDisappear() {
+            shakeIdletask?.cancel()
+            revealTask?.cancel()
             feedbackPlayer.stop(.omikujiShake)
             motionReader.stop()
         }
     }
-    
-    
+
     private func mikujiImage(_ assetName: String) -> some View {
         Image(assetName)
             .resizable()
@@ -129,6 +120,38 @@ struct MikujiView: View {
 //        }
 //    }
 //
+    
+    private func revealStick() {
+        guard phase == .waitingForFlip,
+              !isRevealingStick else {
+            return
+        }
+
+        isRevealingStick = true
+        revealTask?.cancel()
+        revealTask = Task { @MainActor in
+            
+            shakeIdletask?.cancel()
+            endShakeSession()
+            
+            withAnimation(.spring(response:0.35, dampingFraction: 0.55)) {
+                phase = .revealed
+            }
+            feedbackPlayer.play(.omikujiStick)
+
+            do {
+                try await Task.sleep(for: .milliseconds(800))
+            } catch {
+                isRevealingStick = false
+                return
+            }
+
+            isRevealingStick = false
+            onPullMikuji()
+        }
+    }
+    
+    
     private func registerShakeActivity() {
         guard phase != .revealed else {
             return
@@ -189,19 +212,6 @@ struct MikujiView: View {
 //        }
 //    }
     
-    private func revealStick() {
-        guard phase == .waitingForFlip else {
-            return
-        }
-        
-        shakeIdletask?.cancel()
-        endShakeSession()
-        
-        withAnimation(.spring(response:0.35, dampingFraction: 0.55)) {
-            phase = .revealed
-        }
-        feedbackPlayer.play(.omikujiStick)
-    }
 }
 
 #Preview {

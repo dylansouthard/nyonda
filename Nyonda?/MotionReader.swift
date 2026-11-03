@@ -49,7 +49,7 @@ final class MikujiMotionReader {
             while !Task.isCancelled {
                 self?.readLatestSample()
                 
-                try? await Task.sleep(for: .microseconds(16))
+                try? await Task.sleep(for: .milliseconds(16))
             }
         }
     }
